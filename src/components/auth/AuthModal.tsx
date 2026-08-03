@@ -82,6 +82,7 @@ export const AuthModal: React.FC = () => {
         const oauthResult = await authService.signInWithOAuth(providerName as any);
         if (oauthResult?.error) {
           console.warn('Supabase OAuth notice:', oauthResult.error);
+          showToast(`${providerName.toUpperCase()} Provider is disabled in Supabase. Logging in as ${providerName.toUpperCase()} User.`);
         }
       }
 
