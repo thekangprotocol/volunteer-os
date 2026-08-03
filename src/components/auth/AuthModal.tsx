@@ -21,7 +21,7 @@ import {
 import { UserRole } from '../../types';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, login, role, setRole } = useApp();
+  const { isAuthModalOpen, setIsAuthModalOpen, login, role, setRole, updateUserProfile } = useApp();
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRole, setSelectedRole] = useState<UserRole>('volunteer');
   const [authMethod, setAuthMethod] = useState<'social' | 'email'>('social');
@@ -39,7 +39,16 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleCompleteAuth = (providerName: string) => {
-    // Store user type in local persistence
+    // Update user profile with real signed-in name/email
+    const userDisplayName = name.trim() || (email ? email.split('@')[0] : 'User');
+    const userEmail = email.trim() || `${userDisplayName.toLowerCase().replace(/\s+/g, '')}@example.com`;
+
+    updateUserProfile({
+      name: userDisplayName,
+      email: userEmail,
+      role: selectedRole
+    });
+
     localStorage.setItem('volunteer_os_user_role', selectedRole);
     localStorage.setItem('volunteer_os_auth_provider', providerName);
 

@@ -120,9 +120,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>('dark');
   const [role, setRole] = useState<UserRole>('volunteer');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<NavigationTab>('explore');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<NavigationTab>('landing');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   
   const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
