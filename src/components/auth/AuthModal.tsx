@@ -19,6 +19,7 @@ import {
   Check
 } from 'lucide-react';
 import { UserRole } from '../../types';
+import { authService } from '../../services/authService';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, login, role, setRole, updateUserProfile } = useApp();
@@ -32,16 +33,39 @@ export const AuthModal: React.FC = () => {
 
   if (!isAuthModalOpen) return null;
 
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const handleSelectRole = (r: UserRole) => {
     setSelectedRole(r);
     setRole(r);
     setStep(2);
   };
 
-  const handleCompleteAuth = (providerName: string) => {
-    // Update user profile with real signed-in name/email
+  const handleCompleteAuth = async (providerName: string) => {
+    setLoading(true);
+    setErrorMessage(null);
+
     const userDisplayName = name.trim() || (email ? email.split('@')[0] : 'User');
     const userEmail = email.trim() || `${userDisplayName.toLowerCase().replace(/\s+/g, '')}@example.com`;
+
+    if (authMethod === 'email' && email && password) {
+      if (mode === 'signup') {
+        const result = await authService.signUp(userEmail, password, userDisplayName, selectedRole);
+        if (result.error) {
+          setErrorMessage(result.error);
+          setLoading(false);
+          return;
+        }
+      } else {
+        const result = await authService.signIn(userEmail, password);
+        if (result.error) {
+          setErrorMessage(result.error);
+          setLoading(false);
+          return;
+        }
+      }
+    }
 
     updateUserProfile({
       name: userDisplayName,
@@ -52,6 +76,7 @@ export const AuthModal: React.FC = () => {
     localStorage.setItem('volunteer_os_user_role', selectedRole);
     localStorage.setItem('volunteer_os_auth_provider', providerName);
 
+    setLoading(false);
     login(selectedRole);
   };
 
