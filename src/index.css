@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #ffffff;
+    --bg-subtle: #fafafa;
+    --text-main: #09090b;
+    --text-muted: #71717a;
+    --card-bg: #f4f4f5;
+    --card-border: #e4e4e7;
+  }
+
+  .dark {
+    --bg-main: #09090b;
+    --bg-subtle: #18181b;
+    --text-main: #ffffff;
+    --text-muted: #a1a1aa;
+    --card-bg: #18181b;
+    --card-border: #27272a;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    letter-spacing: -0.018em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ==========================================================
+   PREMIUM DESIGN SYSTEM UTILITIES (Linear x Apple x Arc x Notion)
+   ========================================================== */
+
+/* Typography Helpers */
+.headline-hero {
+  @apply text-4xl sm:text-6xl font-extrabold tracking-tighter text-zinc-950 dark:text-white leading-none;
+}
+
+.headline-section {
+  @apply text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white;
+}
+
+.body-thin {
+  @apply text-sm sm:text-base font-light text-zinc-600 dark:text-zinc-400 leading-relaxed;
+}
+
+/* 16px Radius Card System */
+.card-16px {
+  border-radius: 1rem; /* 16px radius */
+  @apply border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/90 shadow-sm transition-all duration-300;
+}
+
+.card-16px-hover {
+  border-radius: 1rem; /* 16px radius */
+  @apply border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 active:scale-[0.99];
+}
+
+/* Hover Lift Animation */
+.hover-lift {
+  @apply transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-xl;
+}
+
+/* Floating Glass Navbar */
+.navbar-floating-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dark .navbar-floating-glass {
+  background: rgba(9, 9, 11, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Premium Rounded Minimal Buttons */
+.btn-rounded-primary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.97] transition-all duration-200 shadow-md;
+}
+
+.btn-rounded-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm tracking-wide bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-[0.97] transition-all duration-200;
+}
+
+.btn-rounded-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-bold text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60 active:scale-[0.97] transition-all duration-200;
+}
+
+/* Smooth Page Transitions */
+.page-transition {
+  @apply animate-fade-in;
+}
+
+/* Custom Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 160, 160, 0.4);
+}
