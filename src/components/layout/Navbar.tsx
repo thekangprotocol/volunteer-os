@@ -107,38 +107,14 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2">
           {isAuthenticated && (
             <>
-              {/* Role Switcher Pill */}
-              <div className={`hidden lg:flex items-center p-1 rounded-xl border ${
-                isDark ? 'bg-zinc-900/80 border-zinc-800' : 'bg-zinc-100 border-zinc-200'
+              {/* Static Locked Role Badge */}
+              <div className={`hidden lg:flex items-center px-3 py-1 rounded-xl border text-xs font-mono font-bold tracking-wider uppercase ${
+                isDark ? 'bg-zinc-900/80 border-zinc-800 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'
               }`}>
-                <button
-                  onClick={() => {
-                    setRole('volunteer');
-                    if (activeTab === 'organizer') setActiveTab('explore');
-                  }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    role === 'volunteer'
-                      ? isDark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm'
-                      : 'opacity-50 hover:opacity-100'
-                  }`}
-                >
-                  <UserCheck className="w-3 h-3" />
-                  <span>Volunteer</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setRole('organizer');
-                    setActiveTab('organizer');
-                  }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    role === 'organizer'
-                      ? isDark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm'
-                      : 'opacity-50 hover:opacity-100'
-                  }`}
-                >
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Organizer</span>
-                </button>
+                <span className="flex items-center gap-1.5">
+                  {role === 'volunteer' ? <UserCheck className="w-3.5 h-3.5 text-zinc-400" /> : <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />}
+                  <span>{role === 'organizer' ? 'Organizer Studio' : 'Volunteer Mode'}</span>
+                </span>
               </div>
 
               {/* Messages Quick Button */}
