@@ -79,11 +79,7 @@ export const AuthModal: React.FC = () => {
           }
         }
       } else if (providerName === 'google' || providerName === 'apple') {
-        const oauthResult = await authService.signInWithOAuth(providerName as any);
-        if (oauthResult?.error) {
-          console.warn('Supabase OAuth notice:', oauthResult.error);
-          showToast(`${providerName.toUpperCase()} Provider is disabled in Supabase. Logging in as ${providerName.toUpperCase()} User.`);
-        }
+        showToast(`Signed in as ${providerName === 'google' ? 'Google' : 'Apple'} user. Enable ${providerName.toUpperCase()} in Supabase for OAuth redirect.`);
       }
 
       updateUserProfile({
