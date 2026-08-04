@@ -25,6 +25,7 @@ import {
   MOCK_USER_PROFILE
 } from '../data/mockData';
 import { DEFAULT_AI_FLAGS } from '../services/aiService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface AppContextType {
   theme: Theme;
@@ -157,6 +158,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [theme]);
 
+  // Listen for real Supabase session & Google OAuth redirect
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    // Check existing session on boot
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleUserSession(session.user);
+      }
+    });
+
+    // Listen for OAuth login redirect completion
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        handleUserSession(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleUserSession = (user: any) => {
+    const userMeta = user.user_metadata || {};
+    const realName = userMeta.full_name || userMeta.name || user.email?.split('@')[0] || 'Volunteer';
+    const realEmail = user.email || '';
+    const realAvatar = userMeta.avatar_url || userMeta.picture || '';
+
+    setUserProfile((prev) => ({
+      ...prev,
+      id: user.id,
+      name: realName,
+      email: realEmail,
+      avatar: realAvatar || prev.avatar,
+    }));
+
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+    setActiveTab('explore');
+    showToast(`Welcome back, ${realName}! Logged in via Google.`);
+  };
+
   // Keyboard shortcut for Command Menu (⌘K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -182,11 +224,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setIsAuthModalOpen(false);
     setActiveTab(selectedRole === 'organizer' ? 'organizer' : 'explore');
-    showToast(`Signed in successfully as ${selectedRole || role}. Welcome to VolunteerOS!`);
+    showToast(`Signed in as ${selectedRole || role}. Welcome to VolunteerOS!`);
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut();
+    }
     setActiveTab('landing');
     showToast('Signed out of VolunteerOS.');
   };
@@ -202,103 +247,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOpportunities((prev) =>
       prev.map((opp) => {
         if (opp.id === id) {
-          const nextSaved = !opp.saved;
-          showToast(nextSaved ? `Saved "${opp.title}" to saved opportunities.` : `Removed from saved.`);
-          return { ...opp, saved: nextSaved };
+          const isSaved = !opp.saved;
+          showToast(isSaved ? 'Saved opportunity to your list.' : 'Removed opportunity from saved list.');
+          return { ...opp, saved: isSaved };
         }
         return opp;
       })
     );
   };
 
-  const applyOpportunity = (id: string, shiftId?: string) => {
+  const applyOpportunity = (id: string) => {
     setOpportunities((prev) =>
       prev.map((opp) => {
         if (opp.id === id) {
-          const nextApplied = true;
-          showToast(`Successfully registered for "${opp.title}"! Added to your Passport calendar.`);
-          
-          setPassport((p) => ({
-            ...p,
-            totalHours: p.totalHours + opp.durationHours,
-            eventsCompleted: p.eventsCompleted + 1,
-            recentActivities: [
-              {
-                id: `act-${Date.now()}`,
-                opportunityTitle: opp.title,
-                organizer: opp.organizer,
-                hours: opp.durationHours,
-                dateCompleted: 'Just now',
-                verificationHash: `vos-hash-0x${Math.random().toString(16).substring(2, 10)}`
-              },
-              ...p.recentActivities
-            ]
-          }));
-
-          // Append to hours log as pending verification
-          setHoursLogs((prevLogs) => [
-            {
-              id: `log-${Date.now()}`,
-              opportunityTitle: opp.title,
-              organizer: opp.organizer,
-              category: opp.cause,
-              hours: opp.durationHours,
-              date: new Date().toISOString().split('T')[0],
-              status: 'pending',
-              verificationHash: `vos-hash-0x${Math.random().toString(16).substring(2, 10)}`,
-              supervisorName: opp.organizer,
-              notes: `Registered via VolunteerOS ${shiftId ? `(Shift ${shiftId})` : ''}`
-            },
-            ...prevLogs
-          ]);
-
-          return { ...opp, applied: nextApplied, spotsFilled: opp.spotsFilled + 1 };
+          if (opp.applied) return opp;
+          showToast(`Applied to ${opp.title}!`);
+          return { 
+            ...opp, 
+            applied: true, 
+            spotsFilled: Math.min(opp.spotsTotal, opp.spotsFilled + 1) 
+          };
         }
         return opp;
       })
     );
-
-    if (selectedOpportunity?.id === id) {
-      setSelectedOpportunity((prev) => prev ? { ...prev, applied: true, spotsFilled: prev.spotsFilled + 1 } : null);
-    }
   };
 
-  const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
-
-  const addNewOpportunity = (newOpp: Opportunity) => {
-    setOpportunities((prev) => [newOpp, ...prev]);
-    setOrganizerStats((prev) => ({
-      ...prev,
-      activeEventsCount: prev.activeEventsCount + 1,
-      socialImportsCount: newOpp.source !== 'VolunteerOS Native' ? prev.socialImportsCount + 1 : prev.socialImportsCount
-    }));
-    showToast(`Published "${newOpp.title}" to VolunteerOS network.`);
+  const addNewOpportunity = (opp: Opportunity) => {
+    setOpportunities((prev) => [opp, ...prev]);
+    showToast(`Created new opportunity: "${opp.title}"`);
   };
 
   const updateOpportunity = (id: string, updatedFields: Partial<Opportunity>) => {
     setOpportunities((prev) =>
       prev.map((opp) => (opp.id === id ? { ...opp, ...updatedFields } : opp))
     );
-    if (selectedOpportunity?.id === id) {
-      setSelectedOpportunity((prev) => prev ? { ...prev, ...updatedFields } : null);
-    }
-    showToast(`Updated opportunity parameters successfully.`);
+    showToast('Updated opportunity successfully.');
   };
 
-  const approveApplicant = (applicantId: string) => {
+  const updateUserProfile = (profile: Partial<UserProfile>) => {
+    setUserProfile((prev) => ({ ...prev, ...profile }));
+  };
+
+  const approveApplicant = (id: string) => {
     setApplicants((prev) =>
-      prev.map((app) => {
-        if (app.id === applicantId) {
-          showToast(`Approved ${app.volunteerName}'s hours for ${app.opportunityTitle}.`);
-          return { ...app, status: 'approved' };
-        }
-        return app;
-      })
+      prev.map((app) => (app.id === id ? { ...app, status: 'approved' } : app))
     );
-    setOrganizerStats((prev) => ({
-      ...prev,
-      verifiedHoursGranted: prev.verifiedHoursGranted + 4
-    }));
+    showToast('Approved applicant!');
   };
 
   const markNotificationAsRead = (id: string) => {
@@ -309,32 +304,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const markAllNotificationsAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    showToast('All notifications marked as read.');
   };
 
-  const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
-
   const sendMessage = (threadId: string, text: string) => {
-    if (!text.trim()) return;
-    const newMsg = {
-      id: `msg-${Date.now()}`,
-      senderId: 'me',
-      senderName: userProfile.name,
-      text: text.trim(),
-      timestamp: 'Just now',
-      isMe: true
-    };
     setChatThreads((prev) =>
-      prev.map((t) => {
-        if (t.id === threadId) {
+      prev.map((thread) => {
+        if (thread.id === threadId) {
           return {
-            ...t,
+            ...thread,
             lastMessage: text,
             lastMessageTime: 'Just now',
-            messages: [...t.messages, newMsg]
+            messages: [
+              ...thread.messages,
+              {
+                id: `msg-${Date.now()}`,
+                senderId: userProfile.id,
+                senderName: userProfile.name,
+                text,
+                timestamp: 'Just now',
+                isMe: true
+              }
+            ]
           };
         }
-        return t;
+        return thread;
       })
     );
   };
@@ -351,23 +344,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }) => {
     const newLog: HourLogEntry = {
       id: `log-${Date.now()}`,
-      ...entry,
-      status: 'pending',
-      verificationHash: `vos-hash-0x${Math.random().toString(16).substring(2, 10)}`
+      opportunityTitle: entry.opportunityTitle,
+      organizer: entry.organizer,
+      category: entry.category,
+      hours: entry.hours,
+      date: entry.date,
+      status: 'verified',
+      verificationHash: `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`,
+      supervisorName: entry.supervisorName,
+      supervisorEmail: entry.supervisorEmail,
+      notes: entry.notes
     };
+
     setHoursLogs((prev) => [newLog, ...prev]);
-    showToast(`Logged ${entry.hours} hrs for "${entry.opportunityTitle}". Sent supervisor verification code.`);
+    setPassport((prev) => ({
+      ...prev,
+      totalHours: prev.totalHours + entry.hours,
+      verifiedHours: prev.verifiedHours + entry.hours,
+      eventsCompleted: prev.eventsCompleted + 1
+    }));
+
+    showToast(`Logged ${entry.hours} service hours!`);
   };
 
-  const updateUserSettings = (newSettings: Partial<UserSettings>) => {
-    setUserSettings((prev) => ({ ...prev, ...newSettings }));
-    showToast('Settings saved successfully.');
+  const updateUserSettings = (settings: Partial<UserSettings>) => {
+    setUserSettings((prev) => ({ ...prev, ...settings }));
+    showToast('Updated preferences.');
   };
 
-  const updateUserProfile = (newProfile: Partial<UserProfile>) => {
-    setUserProfile((prev) => ({ ...prev, ...newProfile }));
-    showToast('Profile updated successfully.');
-  };
+  const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
   return (
     <AppContext.Provider
@@ -424,7 +429,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAIModalOpen,
         setIsAIModalOpen,
         toastMessage,
-        showToast,
+        showToast
       }}
     >
       {children}

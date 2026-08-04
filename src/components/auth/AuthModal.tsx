@@ -12,11 +12,7 @@ import {
   User, 
   ChevronLeft, 
   Heart, 
-  Award, 
-  Compass, 
-  Building2, 
   CheckCircle2,
-  Check,
   AlertCircle
 } from 'lucide-react';
 import { UserRole } from '../../types';
@@ -48,19 +44,19 @@ export const AuthModal: React.FC = () => {
       setLoading(true);
       setErrorMessage(null);
 
-      let userDisplayName = name.trim();
-      let userEmail = email.trim();
-
       if (providerName === 'google') {
-        userDisplayName = userDisplayName || 'Google Volunteer';
-        userEmail = userEmail || 'volunteer@gmail.com';
-      } else if (providerName === 'apple') {
-        userDisplayName = userDisplayName || 'Apple Volunteer';
-        userEmail = userEmail || 'volunteer@icloud.com';
-      } else {
-        userDisplayName = userDisplayName || (email ? email.split('@')[0] : 'User');
-        userEmail = userEmail || `${userDisplayName.toLowerCase().replace(/\s+/g, '')}@example.com`;
+        const oauthResult = await authService.signInWithOAuth('google');
+        if (oauthResult?.error) {
+          setErrorMessage(oauthResult.error);
+          setLoading(false);
+          return;
+        }
+        // Supabase will automatically redirect to Google accounts picker
+        return;
       }
+
+      const userDisplayName = name.trim() || (email ? email.split('@')[0] : 'User');
+      const userEmail = email.trim();
 
       if (authMethod === 'email' && email && password) {
         if (mode === 'signup') {
@@ -78,18 +74,11 @@ export const AuthModal: React.FC = () => {
             return;
           }
         }
-      } else if (providerName === 'google' || providerName === 'apple') {
-        const oauthResult = await authService.signInWithOAuth(providerName as 'google' | 'apple');
-        if (oauthResult?.error) {
-          setErrorMessage(oauthResult.error);
-          setLoading(false);
-          return;
-        }
       }
 
       updateUserProfile({
         name: userDisplayName,
-        email: userEmail,
+        email: userEmail || `${userDisplayName.toLowerCase().replace(/\s+/g, '')}@volunteer.os`,
         role: selectedRole
       });
 
@@ -101,10 +90,7 @@ export const AuthModal: React.FC = () => {
     } catch (err: any) {
       console.error('Authentication Error:', err);
       setLoading(false);
-      setErrorMessage(err?.message || 'Authentication process encountered an issue. Signed in locally.');
-      
-      // Fallback graceful sign-in so user is never locked out
-      login(selectedRole);
+      setErrorMessage(err?.message || 'Authentication error occurred.');
     }
   };
 
@@ -122,58 +108,51 @@ export const AuthModal: React.FC = () => {
     <Modal
       isOpen={isAuthModalOpen}
       onClose={resetModal}
-      title={step === 1 ? "How would you like to use VolunteerOS?" : `${mode === 'signup' ? 'Create Your' : 'Sign In to'} ${selectedRole === 'volunteer' ? 'Volunteer' : 'Organizer'} Account`}
-      subtitle={step === 1 ? "Choose your workspace role to personalize your impact dashboard." : `Selected role: ${selectedRole === 'volunteer' ? 'Volunteer' : 'Organizer'}`}
+      title={step === 1 ? "Select Your Workspace Role" : `${mode === 'signup' ? 'Create Your' : 'Sign In to'} ${selectedRole === 'volunteer' ? 'Volunteer' : 'Organizer'} Account`}
+      subtitle={step === 1 ? "Choose how you'll interact with VolunteerOS." : `Selected workspace: ${selectedRole === 'volunteer' ? 'Volunteer' : 'Organizer'}`}
       maxWidth={step === 1 ? "max-w-2xl" : "max-w-md"}
     >
       {step === 1 ? (
-        /* --- STEP 1: CINEMATIC ROLE SELECTION CARDS --- */
+        /* --- STEP 1: SLEEK MONOCHROME ROLE CARDS --- */
         <div className="space-y-6 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Volunteer Card */}
             <div
               onClick={() => handleSelectRole('volunteer')}
-              className="group relative p-6 rounded-3xl bg-gradient-to-b from-emerald-500/10 via-zinc-900/40 to-zinc-900/80 dark:from-emerald-500/15 dark:to-zinc-900/90 border border-emerald-500/30 dark:border-emerald-500/30 hover:border-emerald-400 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col justify-between"
+              className="group relative p-6 rounded-3xl bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between"
             >
               <div className="space-y-4">
-                {/* Cinematic Icon Badge */}
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 group-hover:rotate-3 transition-transform">
-                  <div className="w-full h-full rounded-[14px] bg-zinc-950 flex items-center justify-center">
-                    <Heart className="w-7 h-7 text-emerald-400 animate-pulse" />
-                  </div>
+                <div className="w-12 h-12 rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center shadow-md">
+                  <Heart className="w-6 h-6" />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white group-hover:text-emerald-400 transition-colors">
+                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white">
                       Volunteer
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400">
-                      Impact Seeker
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300">
+                      Member
                     </span>
                   </div>
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                    Discover community events, log verified service hours, earn cryptographic passport badges, and connect with cause leaders.
+                    Discover local causes, track service hours, earn badges, and export verified transcripts.
                   </p>
                 </div>
 
-                <ul className="space-y-2 text-xs text-zinc-600 dark:text-zinc-300 pt-2 border-t border-emerald-500/10">
+                <ul className="space-y-2 text-xs text-zinc-600 dark:text-zinc-400 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Real-time shift discovery & AI matching</span>
+                    <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100 shrink-0" />
+                    <span>Real-time shift discovery</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Verified cryptographic hour passport</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Downloadable official service transcripts</span>
+                    <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100 shrink-0" />
+                    <span>Verified service passport</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="pt-6 flex items-center justify-between text-xs font-semibold text-emerald-500 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
+              <div className="pt-6 flex items-center justify-between text-xs font-semibold text-zinc-900 dark:text-white group-hover:translate-x-1 transition-transform">
                 <span>Continue as Volunteer</span>
                 <ArrowRight className="w-4 h-4" />
               </div>
@@ -182,47 +161,40 @@ export const AuthModal: React.FC = () => {
             {/* Organizer Card */}
             <div
               onClick={() => handleSelectRole('organizer')}
-              className="group relative p-6 rounded-3xl bg-gradient-to-b from-purple-500/10 via-zinc-900/40 to-zinc-900/80 dark:from-purple-500/15 dark:to-zinc-900/90 border border-purple-500/30 dark:border-purple-500/30 hover:border-purple-400 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/10 flex flex-col justify-between"
+              className="group relative p-6 rounded-3xl bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between"
             >
               <div className="space-y-4">
-                {/* Cinematic Icon Badge */}
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-400 p-0.5 shadow-lg shadow-purple-500/20 group-hover:rotate-3 transition-transform">
-                  <div className="w-full h-full rounded-[14px] bg-zinc-950 flex items-center justify-center">
-                    <ShieldCheck className="w-7 h-7 text-purple-400" />
-                  </div>
+                <div className="w-12 h-12 rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center shadow-md">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white group-hover:text-purple-400 transition-colors">
+                    <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white">
                       Organizer
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-400">
-                      Community Lead
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300">
+                      Host
                     </span>
                   </div>
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-                    Host community projects, manage applicant rosters, approve verified volunteer hours, and import social events.
+                    Post community opportunities, manage roster attendance, and approve volunteer hours.
                   </p>
                 </div>
 
-                <ul className="space-y-2 text-xs text-zinc-600 dark:text-zinc-300 pt-2 border-t border-purple-500/10">
+                <ul className="space-y-2 text-xs text-zinc-600 dark:text-zinc-400 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Applicant roster & check-in pipeline</span>
+                    <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100 shrink-0" />
+                    <span>Roster & check-in pipeline</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>1-Click batch hour verification</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Social event importer (FB/IG/City)</span>
+                    <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100 shrink-0" />
+                    <span>Batch hour verification</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="pt-6 flex items-center justify-between text-xs font-semibold text-purple-500 dark:text-purple-400 group-hover:translate-x-1 transition-transform">
+              <div className="pt-6 flex items-center justify-between text-xs font-semibold text-zinc-900 dark:text-white group-hover:translate-x-1 transition-transform">
                 <span>Continue as Organizer</span>
                 <ArrowRight className="w-4 h-4" />
               </div>
@@ -230,7 +202,7 @@ export const AuthModal: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* --- STEP 2: AUTHENTICATION (GOOGLE, APPLE, EMAIL) --- */
+        /* --- STEP 2: REAL AUTHENTICATION --- */
         <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
           <button
             onClick={() => setStep(1)}
@@ -241,20 +213,19 @@ export const AuthModal: React.FC = () => {
           </button>
 
           {errorMessage && (
-            <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Social Login Options */}
+          {/* Social Google Login */}
           <div className="space-y-2.5">
-            {/* Google Sign-In */}
             <button
               type="button"
               disabled={loading}
               onClick={() => handleCompleteAuth('google')}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 font-semibold text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-98 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 font-bold text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-98 disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -274,7 +245,7 @@ export const AuthModal: React.FC = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{loading ? 'Connecting Google Account...' : 'Continue with Google'}</span>
+              <span>{loading ? 'Redirecting to Google...' : 'Continue with Google'}</span>
             </button>
           </div>
 
@@ -285,7 +256,7 @@ export const AuthModal: React.FC = () => {
             </span>
           </div>
 
-          {/* Email Login / Signup Option */}
+          {/* Email Option */}
           {authMethod === 'social' ? (
             <button
               type="button"
@@ -350,15 +321,15 @@ export const AuthModal: React.FC = () => {
             </form>
           )}
 
-          {/* Quick Demo Login Option */}
+          {/* Direct Instant Session */}
           <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-center">
             <button
               type="button"
               onClick={() => handleCompleteAuth('demo')}
-              className="text-xs text-purple-600 dark:text-purple-400 font-semibold hover:underline flex items-center justify-center gap-1 mx-auto"
+              className="text-xs text-zinc-700 dark:text-zinc-300 font-semibold hover:underline flex items-center justify-center gap-1 mx-auto"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Or click here to launch 1-Click Instant Demo as {selectedRole}</span>
+              <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Or click here to launch Instant Session as {selectedRole}</span>
             </button>
           </div>
         </div>

@@ -24,14 +24,14 @@ export const LandingPage: React.FC = () => {
     <div className="space-y-24 py-6">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-8 pb-16 text-center max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-300 text-xs font-mono mb-6">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>VolunteerOS v2.5 Architecture Live</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200 text-xs font-mono mb-6 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+          <span>VolunteerOS Protocol v2.5</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight">
           The Operating System for <br />
-          <span className="bg-gradient-to-r from-purple-600 via-emerald-500 to-blue-500 bg-clip-text text-transparent">
+          <span className="text-zinc-950 dark:text-white underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-8">
             Community Impact & Action
           </span>
         </h1>
