@@ -84,6 +84,21 @@ ALTER TABLE public.opportunities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hours_logs ENABLE ROW LEVEL SECURITY;
 
+-- Clean Drop Old Policies (Safe for Re-running)
+DROP POLICY IF EXISTS "Allow public read access to opportunities" ON public.opportunities;
+DROP POLICY IF EXISTS "Allow authenticated users to insert opportunities" ON public.opportunities;
+DROP POLICY IF EXISTS "Allow creator to update opportunity" ON public.opportunities;
+
+DROP POLICY IF EXISTS "Allow users to read profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow user to update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow user to insert own profile" ON public.profiles;
+
+DROP POLICY IF EXISTS "Allow users to read own applications" ON public.applications;
+DROP POLICY IF EXISTS "Allow users to insert own applications" ON public.applications;
+
+DROP POLICY IF EXISTS "Allow users to read own hours logs" ON public.hours_logs;
+DROP POLICY IF EXISTS "Allow users to insert own hours logs" ON public.hours_logs;
+
 -- Create RLS Policies for Public Access & User Ownership
 CREATE POLICY "Allow public read access to opportunities" ON public.opportunities FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated users to insert opportunities" ON public.opportunities FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
