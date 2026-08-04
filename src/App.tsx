@@ -138,9 +138,11 @@ const MainLayout: React.FC = () => {
       {/* Notion-Style Collapsible Sidebar */}
       {isAuthenticated && <Sidebar />}
 
-      {/* Main Content Area */}
-      <main className={`flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 transition-all duration-300 ${
-        isAuthenticated && isSidebarOpen ? 'md:pl-64' : 'md:pl-8'
+      {/* Main Content Area (Dynamically fits remaining space or stretches to 100%) */}
+      <main className={`flex-1 transition-all duration-300 px-4 sm:px-6 lg:px-8 pt-24 pb-16 mx-auto ${
+        isAuthenticated && isSidebarOpen 
+          ? 'md:ml-64 md:w-[calc(100%-16rem)] max-w-6xl' 
+          : 'md:ml-0 md:w-full max-w-7xl'
       }`}>
         {renderActiveView()}
       </main>
