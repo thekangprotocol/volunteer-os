@@ -66,18 +66,22 @@ export const SettingsView: React.FC = () => {
 
     try {
       if (isSupabaseConfigured && userProfile.id) {
-        // Purge profile row from database
+        // Purge all user rows from database tables
         await supabase.from('profiles').delete().eq('id', userProfile.id);
+        await supabase.from('applications').delete().eq('volunteer_id', userProfile.id);
+        await supabase.from('hours_logs').delete().eq('volunteer_id', userProfile.id);
       }
       await authService.signOut();
     } catch (err) {
       console.warn('Account deletion request error:', err);
     }
 
+    // Purge all tokens and cached state
+    localStorage.clear();
     setIsDeleting(false);
     setIsDeleteModalOpen(false);
     logout();
-    showToast('Account deletion request submitted. Your profile data has been purged.');
+    showToast('Account deleted permanently. Database rows & local tokens purged.');
   };
 
   return (

@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   UserCheck,
   Zap,
-  Sparkles
+  Sparkles,
+  Layers,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Avatar } from '../common/UIComponents';
 
@@ -32,6 +34,7 @@ export const Sidebar: React.FC = () => {
     setRole, 
     userProfile,
     setIsCreatorModalOpen,
+    setIsImportModalOpen,
     setIsAIModalOpen,
     unreadNotificationsCount
   } = useApp();
@@ -50,16 +53,20 @@ export const Sidebar: React.FC = () => {
     );
   }
 
-  const mainNavItems: { id: NavigationTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+  // Separate Volunteer Navigation Items
+  const volunteerNavItems: { id: NavigationTab; label: string; icon: React.ReactNode }[] = [
     { id: 'explore', label: 'Opportunity Feed', icon: <Compass className="w-4 h-4" /> },
     { id: 'passport', label: 'Volunteer Passport', icon: <Award className="w-4 h-4" /> },
-    { id: 'organizer', label: 'Organizer Studio', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'hours', label: 'Logged Service Hours', icon: <Clock className="w-4 h-4" /> },
+    { id: 'calendar', label: 'Calendar Schedule', icon: <Calendar className="w-4 h-4" /> },
+    { id: 'saved', label: 'Saved Opportunities', icon: <Bookmark className="w-4 h-4" /> },
   ];
 
-  const activityNavItems: { id: NavigationTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'hours', label: 'Volunteer Hours', icon: <Clock className="w-4 h-4" /> },
-    { id: 'calendar', label: 'Calendar Schedule', icon: <Calendar className="w-4 h-4" /> },
-    { id: 'saved', label: 'Saved Bookmarks', icon: <Bookmark className="w-4 h-4" /> },
+  // Separate Organizer Navigation Items
+  const organizerNavItems: { id: NavigationTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'organizer', label: 'Organizer Studio', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'calendar', label: 'Events Schedule', icon: <Calendar className="w-4 h-4" /> },
+    { id: 'hours', label: 'Hour Approvals', icon: <Clock className="w-4 h-4" /> },
   ];
 
   const communicationNavItems: { id: NavigationTab; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -108,7 +115,7 @@ export const Sidebar: React.FC = () => {
       {/* Sidebar Header / Collapse Toggle */}
       <div className="flex items-center justify-between px-2 py-2 mb-2 border-b border-zinc-200/60 dark:border-zinc-800/60">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-white animate-pulse" />
           <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold">
             {role === 'organizer' ? 'Organizer Mode' : 'Volunteer Mode'}
           </span>
@@ -123,7 +130,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Role Switcher Banner */}
-      <div className="px-1 mb-4">
+      <div className="px-1 mb-3">
         <button
           onClick={() => {
             const nextRole = role === 'volunteer' ? 'organizer' : 'volunteer';
@@ -133,54 +140,46 @@ export const Sidebar: React.FC = () => {
           className="w-full flex items-center justify-between p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all text-xs"
         >
           <div className="flex items-center gap-2">
-            {role === 'volunteer' ? <UserCheck className="w-4 h-4 text-emerald-500" /> : <ShieldCheck className="w-4 h-4 text-purple-500" />}
+            {role === 'volunteer' ? <UserCheck className="w-4 h-4 text-zinc-900 dark:text-white" /> : <ShieldCheck className="w-4 h-4 text-zinc-900 dark:text-white" />}
             <div className="flex flex-col text-left">
-              <span className="font-semibold text-zinc-900 dark:text-white">{role === 'volunteer' ? 'Volunteer View' : 'Organizer View'}</span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Click to toggle role</span>
+              <span className="font-semibold text-zinc-900 dark:text-white">{role === 'volunteer' ? 'Volunteer Mode' : 'Organizer Mode'}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Switch workspace</span>
             </div>
           </div>
           <Zap className="w-3.5 h-3.5 text-zinc-400" />
         </button>
       </div>
 
-      {/* Action Buttons */}
-      <div className="px-1 mb-4 flex flex-col gap-1.5">
-        <button
-          onClick={() => setIsCreatorModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 font-medium text-xs shadow-sm hover:opacity-90 transition-all active:scale-98"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>New Opportunity</span>
-        </button>
+      {/* Organizer Quick Actions */}
+      {role === 'organizer' && (
+        <div className="px-1 mb-3 flex flex-col gap-1.5">
+          <button
+            onClick={() => setIsCreatorModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 font-semibold text-xs shadow-sm hover:opacity-90 transition-all active:scale-98"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Create Opportunity</span>
+          </button>
 
-        <button
-          onClick={() => setIsAIModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-1.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-all"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>AI Assistant</span>
-        </button>
-      </div>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Import Social Event</span>
+          </button>
+        </div>
+      )}
 
       {/* Scrollable Navigation Sections */}
       <div className="flex-1 overflow-y-auto space-y-4 px-1 custom-scrollbar">
-        {/* Core Workspace */}
+        {/* Core Workspace (Distinct per Role) */}
         <div>
           <div className="px-3 mb-1 text-[10px] font-semibold font-mono tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
-            Workspace
+            {role === 'organizer' ? 'Organizer Workspace' : 'Volunteer Workspace'}
           </div>
           <div className="space-y-0.5">
-            {mainNavItems.map(renderNavItem)}
-          </div>
-        </div>
-
-        {/* Activity & Tracking */}
-        <div>
-          <div className="px-3 mb-1 text-[10px] font-semibold font-mono tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
-            Records & Schedule
-          </div>
-          <div className="space-y-0.5">
-            {activityNavItems.map(renderNavItem)}
+            {role === 'organizer' ? organizerNavItems.map(renderNavItem) : volunteerNavItems.map(renderNavItem)}
           </div>
         </div>
 
