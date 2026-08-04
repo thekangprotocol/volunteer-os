@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge } from '../common/UIComponents';
 import { ThemeToggle } from '../common/ThemeToggle';
@@ -24,40 +24,70 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { authService } from '../../services/authService';
+import { LocationHelper } from '../../data/locationData';
 
 export const SettingsView: React.FC = () => {
-  const { userSettings, updateUserSettings, role, setRole, theme, toggleTheme, userProfile, updateUserProfile, logout, showToast } = useApp();
+  const { userSettings, updateUserSettings, role, theme, userProfile, updateUserProfile, logout, showToast } = useApp();
   
-  const [city, setCity] = useState(userProfile.location?.split(',')[0] || 'San Francisco');
-  const [stateProv, setStateProv] = useState(userProfile.location?.split(',')[1]?.trim() || 'CA');
-  const [country, setCountry] = useState(userProfile.location?.split(',')[2]?.trim() || 'United States');
+  const [orgName, setOrgName] = useState(userProfile.organizationName || '');
+  const [country, setCountry] = useState<string>('United States');
+  const [stateProv, setStateProv] = useState<string>('California');
+  const [city, setCity] = useState<string>('San Francisco');
   const [isSavingLoc, setIsSavingLoc] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Cascading update when country changes
+  useEffect(() => {
+    const states = LocationHelper.STATES_PROVINCES[country] || [];
+    if (!states.includes(stateProv)) {
+      const firstState = states[0] || '';
+      setStateProv(firstState);
+      const cities = LocationHelper.CITIES[firstState] || [];
+      setCity(cities[0] || '');
+    }
+  }, [country]);
+
+  // Cascading update when state/province changes
+  useEffect(() => {
+    const cities = LocationHelper.CITIES[stateProv] || [];
+    if (!cities.includes(city)) {
+      setCity(cities[0] || '');
+    }
+  }, [stateProv]);
+
   const handleSaveLocation = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingLoc(true);
 
-    const fullLocation = `${city.trim()}, ${stateProv.trim()}, ${country.trim()}`;
-    updateUserProfile({ location: fullLocation });
+    const fullLocation = `${city}, ${stateProv}, ${country}`;
+    updateUserProfile({ 
+      location: fullLocation,
+      organizationName: role === 'organizer' ? orgName : undefined 
+    });
 
     if (isSupabaseConfigured && userProfile.id) {
       try {
         await supabase.from('profiles').upsert({
           id: userProfile.id,
-          location: fullLocation
+          name: userProfile.name,
+          email: userProfile.email,
+          location: fullLocation,
+          organization_name: role === 'organizer' ? orgName : null
         });
       } catch (err) {
-        console.warn('Supabase location update warning:', err);
+        console.warn('Supabase profile location update warning:', err);
       }
     }
 
     setIsSavingLoc(false);
-    showToast(`Updated location to ${fullLocation}`);
+    showToast('Profile location and settings updated!');
   };
+
+  const availableStates = LocationHelper.STATES_PROVINCES[country] || [];
+  const availableCities = LocationHelper.CITIES[stateProv] || [];
 
   const handleConfirmAccountDeletion = async () => {
     if (deleteConfirmationInput.trim().toUpperCase() !== 'DELETE') return;
@@ -107,52 +137,72 @@ export const SettingsView: React.FC = () => {
           Your location powers local opportunity discovery and distance calculations.
         </p>
 
-        <form onSubmit={handleSaveLocation} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">City</label>
-            <div className="relative">
-              <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-              <input
-                type="text"
-                required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-              />
+        <form onSubmit={handleSaveLocation} className="space-y-4 pt-2">
+          {role === 'organizer' && (
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 dark:text-white mb-1">
+                Organization / Non-Profit Name
+              </label>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-purple-500" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. San Francisco Food Bank"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">State / Province</label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-              <input
-                type="text"
-                required
-                value={stateProv}
-                onChange={(e) => setStateProv(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Country</label>
-            <div className="relative">
-              <Globe className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-              <input
-                type="text"
-                required
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 dark:text-white mb-1">Country</label>
+              <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-              />
+                className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-400"
+              >
+                {LocationHelper.COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 dark:text-white mb-1">
+                {country === 'Canada' ? 'Province' : 'State'}
+              </label>
+              <select
+                value={stateProv}
+                onChange={(e) => setStateProv(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-400"
+              >
+                {availableStates.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 dark:text-white mb-1">City</label>
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-400"
+              >
+                {availableCities.map((ct) => (
+                  <option key={ct} value={ct}>{ct}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="sm:col-span-3 pt-2">
+          <div className="pt-2">
             <Button type="submit" variant="primary" size="sm" disabled={isSavingLoc}>
-              {isSavingLoc ? 'Updating Location...' : 'Save Location Changes'}
+              {isSavingLoc ? 'Updating Settings...' : 'Save Location & Organization Settings'}
             </Button>
           </div>
         </form>
