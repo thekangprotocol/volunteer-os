@@ -44,7 +44,7 @@ export const OpportunityCreatorModal: React.FC = () => {
 
   // Form State
   const [title, setTitle] = useState('');
-  const [organizer, setOrganizer] = useState(userProfile.organizationName || userProfile.name || 'Community Organization');
+  const [organizer, setOrganizer] = useState(userProfile?.organizationName || userProfile?.name || 'Community Organization');
   const [cause, setCause] = useState<CauseCategory>('Food Security');
   const [venueType, setVenueType] = useState<VenueType>('In-Person');
   const [bannerImage, setBannerImage] = useState('https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&q=80&w=800');
@@ -64,8 +64,8 @@ export const OpportunityCreatorModal: React.FC = () => {
   const [requirementsText, setRequirementsText] = useState('Closed-toe shoes, Comfortable outdoor attire');
   const [skillsText, setSkillsText] = useState('Event Support, Teamwork');
   const [bringText, setBringText] = useState('Reusable water bottle, Work gloves');
-  const [contactName, setContactName] = useState(userProfile.name);
-  const [contactEmail, setContactEmail] = useState(userProfile.email);
+  const [contactName, setContactName] = useState(userProfile?.name || 'Organizer Contact');
+  const [contactEmail, setContactEmail] = useState(userProfile?.email || 'contact@community.org');
   const [contactPhone, setContactPhone] = useState('(415) 892-0192');
 
   // Prefill if editing existing opportunity

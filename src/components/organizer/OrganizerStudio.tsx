@@ -76,7 +76,7 @@ export const OrganizerStudio: React.FC = () => {
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-              {userProfile.organizationName || userProfile.name || 'Community Partner Organization'}
+              {userProfile?.organizationName || userProfile?.name || 'Community Partner Organization'}
             </h1>
             <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
               Manage community project rosters, issue verified hours, and analyze volunteer participation trends.

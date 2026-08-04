@@ -29,7 +29,7 @@ import { LocationHelper } from '../../data/locationData';
 export const SettingsView: React.FC = () => {
   const { userSettings, updateUserSettings, role, theme, userProfile, updateUserProfile, logout, showToast } = useApp();
   
-  const [orgName, setOrgName] = useState(userProfile.organizationName || '');
+  const [orgName, setOrgName] = useState(userProfile?.organizationName || '');
   const [country, setCountry] = useState<string>('United States');
   const [stateProv, setStateProv] = useState<string>('California');
   const [city, setCity] = useState<string>('San Francisco');

@@ -17,7 +17,7 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
 }) => {
   const { userProfile, updateUserProfile, role, showToast } = useApp();
   
-  const [organizationName, setOrganizationName] = useState(userProfile.organizationName || '');
+  const [organizationName, setOrganizationName] = useState(userProfile?.organizationName || '');
   const [country, setCountry] = useState<string>('United States');
   const [stateProvince, setStateProvince] = useState<string>('California');
   const [city, setCity] = useState<string>('San Francisco');
@@ -41,7 +41,7 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
 
   if (!isOpen) return null;
 
-  const isOrganizer = role === 'organizer' || userProfile.role === 'organizer';
+  const isOrganizer = role === 'organizer' || userProfile?.role === 'organizer';
 
   const CAUSE_OPTIONS = [
     'Food Security',
@@ -72,11 +72,11 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
     updateUserProfile({
       location: fullLocation,
       causes: selectedCauses,
-      organizationName: isOrganizer ? (organizationName.trim() || userProfile.name || 'Community Partner Org') : undefined
+      organizationName: isOrganizer ? (organizationName.trim() || userProfile?.name || 'Community Partner Org') : undefined
     });
 
     // Sync to Supabase profiles table if connected
-    if (isSupabaseConfigured && userProfile.id) {
+    if (isSupabaseConfigured && userProfile?.id) {
       try {
         await supabase.from('profiles').upsert({
           id: userProfile.id,
