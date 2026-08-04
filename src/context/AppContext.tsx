@@ -199,16 +199,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const realEmail = user.email || '';
     const realAvatar = userMeta.avatar_url || userMeta.picture || '';
 
-    // Check localStorage or database profile for chosen role
+    // Prioritize explicit role selection from local storage or context state
     const chosenRoleInLocal = (localStorage.getItem('volunteer_os_user_role') as UserRole) || role || 'volunteer';
-    
-    let activeRole: UserRole = chosenRoleInLocal;
+    const activeRole: UserRole = chosenRoleInLocal;
 
-    const { data: dbProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (dbProfile?.role) {
-      activeRole = dbProfile.role as UserRole;
-    } else {
-      // First time user profile creation in database with chosen role
+    // Sync chosen role directly to Supabase profile row
+    try {
       await supabase.from('profiles').upsert({
         id: user.id,
         name: realName,
@@ -216,6 +212,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         role: activeRole,
         avatar: realAvatar
       });
+    } catch (err) {
+      console.warn('Profile role sync warning:', err);
     }
 
     setRoleState(activeRole);
@@ -276,9 +274,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = (selectedRole?: UserRole) => {
+    const activeRole = selectedRole || (localStorage.getItem('volunteer_os_user_role') as UserRole) || role || 'volunteer';
     setIsAuthenticated(true);
-    const activeRole = selectedRole || role;
     setRoleState(activeRole);
+    setUserProfile((prev) => ({ ...prev, role: activeRole }));
     setIsAuthModalOpen(false);
     setActiveTabState(activeRole === 'organizer' ? 'organizer' : 'explore');
     showToast(`Signed in as ${activeRole}. Welcome to VolunteerOS!`);
