@@ -27,6 +27,7 @@ export const AuthModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [orgName, setOrgName] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -81,7 +82,8 @@ export const AuthModal: React.FC = () => {
       updateUserProfile({
         name: userDisplayName,
         email: userEmail || `${userDisplayName.toLowerCase().replace(/\s+/g, '')}@volunteer.os`,
-        role: selectedRole
+        role: selectedRole,
+        organizationName: selectedRole === 'organizer' ? orgName : undefined
       });
 
       localStorage.setItem('volunteer_os_user_role', selectedRole);
@@ -271,20 +273,39 @@ export const AuthModal: React.FC = () => {
           ) : (
             <form onSubmit={handleSubmitEmail} className="space-y-3">
               {mode === 'signup' && (
-                <div>
-                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Zachary Taylor"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
-                    />
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Zachary Taylor"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  {selectedRole === 'organizer' && (
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Organization / Non-Profit Name</label>
+                      <div className="relative">
+                        <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-purple-500" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. San Francisco Food Bank"
+                          value={orgName}
+                          onChange={(e) => setOrgName(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div>

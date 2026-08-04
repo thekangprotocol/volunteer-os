@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/UIComponents';
-import { MapPin, Globe, Building2, Check, ArrowRight, Heart } from 'lucide-react';
+import { MapPin, Globe, Building2, Check, ArrowRight, Heart, ShieldCheck } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 
 interface OnboardingLocationModalProps {
@@ -14,8 +14,9 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
   isOpen,
   onClose
 }) => {
-  const { userProfile, updateUserProfile, showToast } = useApp();
+  const { userProfile, updateUserProfile, role, showToast } = useApp();
   
+  const [organizationName, setOrganizationName] = useState(userProfile.organizationName || '');
   const [city, setCity] = useState('');
   const [stateProvince, setStateProvince] = useState('');
   const [country, setCountry] = useState('United States');
@@ -23,6 +24,8 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
   const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
+
+  const isOrganizer = role === 'organizer' || userProfile.role === 'organizer';
 
   const CAUSE_OPTIONS = [
     'Food Security',
@@ -52,7 +55,8 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
     // Update local React App context
     updateUserProfile({
       location: fullLocation,
-      causes: selectedCauses
+      causes: selectedCauses,
+      organizationName: isOrganizer ? (organizationName.trim() || 'Community Partner Org') : undefined
     });
 
     // Sync to Supabase profiles table if connected
@@ -63,7 +67,8 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
           name: userProfile.name,
           email: userProfile.email,
           location: fullLocation,
-          causes: selectedCauses
+          causes: selectedCauses,
+          organization_name: isOrganizer ? organizationName.trim() : null
         });
       } catch (err) {
         console.warn('Supabase profile location update warning:', err);
@@ -71,7 +76,7 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
     }
 
     setSaving(false);
-    showToast(`Location set to ${fullLocation}`);
+    showToast(`Profile updated for ${isOrganizer ? (organizationName || 'Organizer') : 'Volunteer'}`);
     onClose();
   };
 
@@ -79,12 +84,32 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Complete Your Profile Location"
-      subtitle="Help us match you with local volunteer opportunities near your city."
+      title={isOrganizer ? "Configure Your Organization Profile" : "Complete Your Volunteer Profile"}
+      subtitle={isOrganizer ? "Enter your non-profit or community organization name and headquarters." : "Help us match you with local volunteer opportunities near your city."}
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSaveLocation} className="space-y-5 pt-2">
         <div className="space-y-4">
+          {/* Organization Name for Organizers */}
+          {isOrganizer && (
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 dark:text-white mb-1">
+                Organization / Non-Profit Name *
+              </label>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-purple-500" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. San Francisco Food Bank Foundation"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
               City
@@ -143,7 +168,7 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
         <div>
           <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
             <Heart className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Select Primary Cause Interests</span>
+            <span>Select Primary Cause Focus</span>
           </label>
           <div className="flex flex-wrap gap-2">
             {CAUSE_OPTIONS.map((cause) => {
@@ -174,7 +199,7 @@ export const OnboardingLocationModal: React.FC<OnboardingLocationModalProps> = (
           disabled={saving}
           icon={<ArrowRight className="w-4 h-4" />}
         >
-          {saving ? 'Saving Location...' : 'Complete Profile & Launch Workspace'}
+          {saving ? 'Saving Workspace Profile...' : 'Complete Profile & Launch Workspace'}
         </Button>
       </form>
     </Modal>
