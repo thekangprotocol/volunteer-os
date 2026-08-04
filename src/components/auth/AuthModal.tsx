@@ -36,6 +36,7 @@ export const AuthModal: React.FC = () => {
   const handleSelectRole = (r: UserRole) => {
     setSelectedRole(r);
     setRole(r);
+    localStorage.setItem('volunteer_os_user_role', r);
     setStep(2);
   };
 
@@ -44,6 +45,8 @@ export const AuthModal: React.FC = () => {
       setLoading(true);
       setErrorMessage(null);
 
+      localStorage.setItem('volunteer_os_user_role', selectedRole);
+
       if (providerName === 'google') {
         const oauthResult = await authService.signInWithOAuth('google');
         if (oauthResult?.error) {
@@ -51,7 +54,6 @@ export const AuthModal: React.FC = () => {
           setLoading(false);
           return;
         }
-        // Supabase will automatically redirect to Google accounts picker
         return;
       }
 

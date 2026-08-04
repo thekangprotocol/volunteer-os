@@ -195,30 +195,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const handleUserSession = async (user: any) => {
     const userMeta = user.user_metadata || {};
-    const realName = userMeta.full_name || userMeta.name || user.email?.split('@')[0] || 'Volunteer';
+    const realName = userMeta.full_name || userMeta.name || user.email?.split('@')[0] || 'User';
     const realEmail = user.email || '';
     const realAvatar = userMeta.avatar_url || userMeta.picture || '';
 
-    // Check database profile for saved role
-    let savedRole: UserRole = 'volunteer';
+    // Check localStorage or database profile for chosen role
+    const chosenRoleInLocal = (localStorage.getItem('volunteer_os_user_role') as UserRole) || role || 'volunteer';
+    
+    let activeRole: UserRole = chosenRoleInLocal;
+
     const { data: dbProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (dbProfile?.role) {
-      savedRole = dbProfile.role as UserRole;
+      activeRole = dbProfile.role as UserRole;
+    } else {
+      // First time user profile creation in database with chosen role
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        name: realName,
+        email: realEmail,
+        role: activeRole,
+        avatar: realAvatar
+      });
     }
 
-    setRoleState(savedRole);
+    setRoleState(activeRole);
     setUserProfile((prev) => ({
       ...prev,
       id: user.id,
       name: realName,
       email: realEmail,
-      role: savedRole,
+      role: activeRole,
       avatar: realAvatar || prev.avatar,
     }));
 
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    setActiveTabState(savedRole === 'organizer' ? 'organizer' : 'explore');
+    setActiveTabState(activeRole === 'organizer' ? 'organizer' : 'explore');
     
     // Refresh DB opportunities
     loadOpportunitiesFromDatabase();
