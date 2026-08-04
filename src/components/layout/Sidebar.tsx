@@ -129,25 +129,17 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Role Switcher Banner */}
+      {/* Static Workspace Role Badge */}
       <div className="px-1 mb-3">
-        <button
-          onClick={() => {
-            const nextRole = role === 'volunteer' ? 'organizer' : 'volunteer';
-            setRole(nextRole);
-            setActiveTab(nextRole === 'organizer' ? 'organizer' : 'explore');
-          }}
-          className="w-full flex items-center justify-between p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all text-xs"
-        >
+        <div className="w-full flex items-center justify-between p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs">
           <div className="flex items-center gap-2">
             {role === 'volunteer' ? <UserCheck className="w-4 h-4 text-zinc-900 dark:text-white" /> : <ShieldCheck className="w-4 h-4 text-zinc-900 dark:text-white" />}
             <div className="flex flex-col text-left">
-              <span className="font-semibold text-zinc-900 dark:text-white">{role === 'volunteer' ? 'Volunteer Mode' : 'Organizer Mode'}</span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Switch workspace</span>
+              <span className="font-semibold text-zinc-900 dark:text-white">{role === 'volunteer' ? 'Volunteer Workspace' : 'Organizer Studio'}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Account Role</span>
             </div>
           </div>
-          <Zap className="w-3.5 h-3.5 text-zinc-400" />
-        </button>
+        </div>
       </div>
 
       {/* Organizer Quick Actions */}

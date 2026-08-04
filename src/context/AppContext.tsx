@@ -26,6 +26,7 @@ import {
 } from '../data/mockData';
 import { DEFAULT_AI_FLAGS } from '../services/aiService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { opportunityService } from '../services/opportunityService';
 
 interface AppContextType {
   theme: Theme;
@@ -120,13 +121,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>('dark');
-  const [role, setRole] = useState<UserRole>('volunteer');
+  const [role, setRoleState] = useState<UserRole>('volunteer');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<NavigationTab>('landing');
+  const [activeTab, setActiveTabState] = useState<NavigationTab>('landing');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(MOCK_OPPORTUNITIES);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
   const [passport, setPassport] = useState<VolunteerPassportData>(MOCK_PASSPORT);
@@ -159,18 +160,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [theme]);
 
+  // Load opportunities from Supabase database on boot
+  useEffect(() => {
+    loadOpportunitiesFromDatabase();
+  }, []);
+
+  const loadOpportunitiesFromDatabase = async () => {
+    const dbOpps = await opportunityService.fetchOpportunities();
+    if (dbOpps && dbOpps.length > 0) {
+      setOpportunities(dbOpps);
+    } else {
+      setOpportunities(MOCK_OPPORTUNITIES);
+    }
+  };
+
   // Listen for real Supabase session & Google OAuth redirect
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
-    // Check existing session on boot
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         handleUserSession(session.user);
       }
     });
 
-    // Listen for OAuth login redirect completion
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         handleUserSession(session.user);
@@ -180,24 +193,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleUserSession = (user: any) => {
+  const handleUserSession = async (user: any) => {
     const userMeta = user.user_metadata || {};
     const realName = userMeta.full_name || userMeta.name || user.email?.split('@')[0] || 'Volunteer';
     const realEmail = user.email || '';
     const realAvatar = userMeta.avatar_url || userMeta.picture || '';
 
+    // Check database profile for saved role
+    let savedRole: UserRole = 'volunteer';
+    const { data: dbProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (dbProfile?.role) {
+      savedRole = dbProfile.role as UserRole;
+    }
+
+    setRoleState(savedRole);
     setUserProfile((prev) => ({
       ...prev,
       id: user.id,
       name: realName,
       email: realEmail,
+      role: savedRole,
       avatar: realAvatar || prev.avatar,
     }));
 
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    setActiveTab('explore');
-    showToast(`Welcome back, ${realName}! Logged in via Google.`);
+    setActiveTabState(savedRole === 'organizer' ? 'organizer' : 'explore');
+    
+    // Refresh DB opportunities
+    loadOpportunitiesFromDatabase();
+  };
+
+  // Strict Navigation Tab Setter enforcing Role Access Boundaries
+  const setActiveTab = (tab: NavigationTab) => {
+    if (role === 'volunteer' && tab === 'organizer') {
+      setActiveTabState('explore');
+      showToast('Organizer Studio is restricted to Organizer accounts.');
+      return;
+    }
+    if (role === 'organizer' && (tab === 'explore' || tab === 'passport')) {
+      setActiveTabState('organizer');
+      showToast('Volunteer feed is restricted to Volunteer accounts.');
+      return;
+    }
+    setActiveTabState(tab);
+  };
+
+  // Lock Role setting (cannot switch once selected)
+  const setRole = (newRole: UserRole) => {
+    setRoleState(newRole);
+    setUserProfile((prev) => ({ ...prev, role: newRole }));
   };
 
   // Keyboard shortcut for Command Menu (⌘K / Ctrl+K)
@@ -220,12 +265,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = (selectedRole?: UserRole) => {
     setIsAuthenticated(true);
-    if (selectedRole) {
-      setRole(selectedRole);
-    }
+    const activeRole = selectedRole || role;
+    setRoleState(activeRole);
     setIsAuthModalOpen(false);
-    setActiveTab(selectedRole === 'organizer' ? 'organizer' : 'explore');
-    showToast(`Signed in as ${selectedRole || role}. Welcome to VolunteerOS!`);
+    setActiveTabState(activeRole === 'organizer' ? 'organizer' : 'explore');
+    showToast(`Signed in as ${activeRole}. Welcome to VolunteerOS!`);
   };
 
   const logout = () => {
@@ -233,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isSupabaseConfigured) {
       supabase.auth.signOut();
     }
-    setActiveTab('landing');
+    setActiveTabState('landing');
     showToast('Signed out of VolunteerOS.');
   };
 
@@ -274,9 +318,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addNewOpportunity = (opp: Opportunity) => {
+  const addNewOpportunity = async (opp: Opportunity) => {
+    // 1. Add locally
     setOpportunities((prev) => [opp, ...prev]);
-    showToast(`Created new opportunity: "${opp.title}"`);
+    showToast(`Published opportunity: "${opp.title}"`);
+
+    // 2. Persist to Supabase database so all volunteers see it immediately!
+    await opportunityService.createOpportunity(opp, userProfile.id);
   };
 
   const updateOpportunity = (id: string, updatedFields: Partial<Opportunity>) => {
