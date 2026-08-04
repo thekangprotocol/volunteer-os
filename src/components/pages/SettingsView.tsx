@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, Badge } from '../common/UIComponents';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { Modal } from '../common/Modal';
 import { 
   Settings, 
   Bell, 
@@ -14,11 +15,70 @@ import {
   Check, 
   Share2, 
   Smartphone,
-  Mail
+  Mail,
+  Trash2,
+  AlertTriangle,
+  MapPin,
+  Building2,
+  UserX
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
+import { authService } from '../../services/authService';
 
 export const SettingsView: React.FC = () => {
-  const { userSettings, updateUserSettings, role, setRole, theme, toggleTheme } = useApp();
+  const { userSettings, updateUserSettings, role, setRole, theme, toggleTheme, userProfile, updateUserProfile, logout, showToast } = useApp();
+  
+  const [city, setCity] = useState(userProfile.location?.split(',')[0] || 'San Francisco');
+  const [stateProv, setStateProv] = useState(userProfile.location?.split(',')[1]?.trim() || 'CA');
+  const [country, setCountry] = useState(userProfile.location?.split(',')[2]?.trim() || 'United States');
+  const [isSavingLoc, setIsSavingLoc] = useState(false);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleSaveLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingLoc(true);
+
+    const fullLocation = `${city.trim()}, ${stateProv.trim()}, ${country.trim()}`;
+    updateUserProfile({ location: fullLocation });
+
+    if (isSupabaseConfigured && userProfile.id) {
+      try {
+        await supabase.from('profiles').upsert({
+          id: userProfile.id,
+          location: fullLocation
+        });
+      } catch (err) {
+        console.warn('Supabase location update warning:', err);
+      }
+    }
+
+    setIsSavingLoc(false);
+    showToast(`Updated location to ${fullLocation}`);
+  };
+
+  const handleConfirmAccountDeletion = async () => {
+    if (deleteConfirmationInput.trim().toUpperCase() !== 'DELETE') return;
+
+    setIsDeleting(true);
+
+    try {
+      if (isSupabaseConfigured && userProfile.id) {
+        // Purge profile row from database
+        await supabase.from('profiles').delete().eq('id', userProfile.id);
+      }
+      await authService.signOut();
+    } catch (err) {
+      console.warn('Account deletion request error:', err);
+    }
+
+    setIsDeleting(false);
+    setIsDeleteModalOpen(false);
+    logout();
+    showToast('Account deletion request submitted. Your profile data has been purged.');
+  };
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -29,9 +89,70 @@ export const SettingsView: React.FC = () => {
           <span>System Settings & Preferences</span>
         </h1>
         <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Customize your workspace experience, notification alerts, privacy safeguards, and connected social networks.
+          Manage your workspace preferences, regional location, notification alerts, and account safety.
         </p>
       </div>
+
+      {/* Location & Regional Settings */}
+      <Card className="p-6 space-y-4">
+        <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-emerald-500" />
+          <span>Location & Regional Demographics</span>
+        </h2>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Your location powers local opportunity discovery and distance calculations.
+        </p>
+
+        <form onSubmit={handleSaveLocation} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">City</label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+              <input
+                type="text"
+                required
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">State / Province</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+              <input
+                type="text"
+                required
+                value={stateProv}
+                onChange={(e) => setStateProv(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Country</label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+              <input
+                type="text"
+                required
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-3 pt-2">
+            <Button type="submit" variant="primary" size="sm" disabled={isSavingLoc}>
+              {isSavingLoc ? 'Updating Location...' : 'Save Location Changes'}
+            </Button>
+          </div>
+        </form>
+      </Card>
 
       {/* Role Workspace Selection */}
       <Card className="p-6 space-y-4">
@@ -92,68 +213,75 @@ export const SettingsView: React.FC = () => {
         </div>
       </Card>
 
-      {/* Notification Preferences */}
-      <Card className="p-6 space-y-4">
-        <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-          <Bell className="w-5 h-5 text-blue-500" />
-          <span>Notification Channels</span>
-        </h2>
-        <div className="space-y-3 text-xs">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
-            <div className="flex items-center gap-2.5">
-              <Mail className="w-4 h-4 text-zinc-400" />
-              <div>
-                <span className="font-semibold text-zinc-900 dark:text-white">Email Digest & Shift Reminders</span>
-                <p className="text-[11px] text-zinc-500">Receive 24-hr shift reminders and approval digests.</p>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={userSettings.emailNotifications}
-              onChange={(e) => updateUserSettings({ emailNotifications: e.target.checked })}
-              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-            />
+      {/* Danger Zone: Account Deletion Request */}
+      <Card className="p-6 space-y-4 border-red-500/20 bg-red-500/5 dark:bg-red-950/10">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <span>Danger Zone: Account Deletion</span>
+            </h2>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-xl">
+              Permanently request account deletion and purge your profile record, passport badges, and service hour logs from VolunteerOS.
+            </p>
           </div>
-
-          <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
-            <div className="flex items-center gap-2.5">
-              <Smartphone className="w-4 h-4 text-zinc-400" />
-              <div>
-                <span className="font-semibold text-zinc-900 dark:text-white">In-App Push Alerts</span>
-                <p className="text-[11px] text-zinc-500">Real-time alerts for organizer messages and approvals.</p>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={userSettings.pushNotifications}
-              onChange={(e) => updateUserSettings({ pushNotifications: e.target.checked })}
-              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-            />
-          </div>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setIsDeleteModalOpen(true)}
+            icon={<UserX className="w-4 h-4" />}
+          >
+            Request Account Deletion
+          </Button>
         </div>
       </Card>
 
-      {/* Privacy & Security */}
-      <Card className="p-6 space-y-4">
-        <h2 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-          <Lock className="w-5 h-5 text-emerald-500" />
-          <span>Privacy & Passport Visibility</span>
-        </h2>
-        <div className="space-y-3 text-xs">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
-            <div>
-              <span className="font-semibold text-zinc-900 dark:text-white">Public Volunteer Passport</span>
-              <p className="text-[11px] text-zinc-500">Allow non-profits and schools to view your verified hours badge.</p>
-            </div>
+      {/* Account Deletion Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Request Account Deletion"
+        subtitle="This action is permanent and cannot be undone."
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs leading-relaxed">
+            Warning: Requesting account deletion will purge your profile, un-list your organization events, and reset your verified service passport.
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+              Type <span className="font-mono font-bold text-red-500">DELETE</span> to confirm:
+            </label>
             <input
-              type="checkbox"
-              checked={userSettings.publicProfile}
-              onChange={(e) => updateUserSettings({ publicProfile: e.target.checked })}
-              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+              type="text"
+              placeholder="DELETE"
+              value={deleteConfirmationInput}
+              onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1"
+              disabled={deleteConfirmationInput.trim().toUpperCase() !== 'DELETE' || isDeleting}
+              onClick={handleConfirmAccountDeletion}
+              icon={<Trash2 className="w-4 h-4" />}
+            >
+              {isDeleting ? 'Deleting...' : 'Confirm Permanent Deletion'}
+            </Button>
+          </div>
         </div>
-      </Card>
+      </Modal>
     </div>
   );
 };

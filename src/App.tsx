@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
@@ -17,6 +17,7 @@ import { ProfileView } from './components/pages/ProfileView';
 import { SettingsView } from './components/pages/SettingsView';
 
 import { AuthModal } from './components/auth/AuthModal';
+import { OnboardingLocationModal } from './components/auth/OnboardingLocationModal';
 import { OpportunityCreatorModal } from './components/organizer/OpportunityCreatorModal';
 import { AggregationImportModal } from './components/organizer/AggregationImportModal';
 import { CommandMenu } from './components/common/CommandMenu';
@@ -79,8 +80,24 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const MainLayout: React.FC = () => {
-  const { activeTab, theme, isSidebarOpen, isAuthenticated } = useApp();
+  const { activeTab, theme, isSidebarOpen, isAuthenticated, userProfile } = useApp();
   const isDark = theme === 'dark';
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Trigger onboarding modal after sign-in if location is not configured
+  useEffect(() => {
+    if (isAuthenticated) {
+      const hasConfiguredLocation = localStorage.getItem('volunteer_os_location_configured');
+      if (!hasConfiguredLocation) {
+        setIsOnboardingOpen(true);
+      }
+    }
+  }, [isAuthenticated]);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('volunteer_os_location_configured', 'true');
+    setIsOnboardingOpen(false);
+  };
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -133,6 +150,10 @@ const MainLayout: React.FC = () => {
 
       {/* Global Modals & Notifications */}
       <AuthModal />
+      <OnboardingLocationModal
+        isOpen={isOnboardingOpen}
+        onClose={handleCloseOnboarding}
+      />
       <OpportunityCreatorModal />
       <AggregationImportModal />
       <CommandMenu />
